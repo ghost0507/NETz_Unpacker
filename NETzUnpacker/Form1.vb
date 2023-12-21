@@ -4,6 +4,8 @@ Imports System.Resources
 Imports System.Reflection
 Imports System.Runtime.InteropServices
 Imports ICSharpCode.SharpZipLib.Zip.Compression.Streams
+Imports System.Globalization
+
 Public Class Form1
     Private Shared rm As ResourceManager
     Private Shared inResourceResolveFlag As Boolean = False
@@ -38,6 +40,7 @@ Public Class Form1
             targettedAssembly = path
             Label1.Text = "unpacker by misonothx" & vbCrLf & vbCrLf & "tested on NETz 0.4.8" & vbCrLf & vbCrLf & "sinister.ly <3" & vbCrLf & vbCrLf & "---------------" & vbCrLf & vbCrLf & "loading..."
             StartApp()
+            ExtractLibraries()
         Next
     End Sub
     Public Function StartApp() As Integer
@@ -162,5 +165,34 @@ Public Class Form1
         Label1.Text = "unpacker by misonothx" & vbCrLf & vbCrLf & "tested on NETz 0.4.8" & vbCrLf & vbCrLf & "sinister.ly <3" & vbCrLf & vbCrLf & "---------------" & vbCrLf & vbCrLf & "drop file"
         Timer1.Stop()
     End Sub
+
+    Private Sub ExtractLibraries()
+        If rm Is Nothing Then
+            rm = New ResourceManager("app", Assembly.LoadFile(targettedAssembly))
+        End If
+        Dim resourceSet As ResourceSet = rm.GetResourceSet(CultureInfo.CurrentUICulture, True, True)
+        Dim memoryStream As MemoryStream = Nothing
+        For Each obj As Object In resourceSet
+            Dim res As DictionaryEntry = CType(obj, DictionaryEntry)
+            Dim existsExtLibs As Boolean = res.Key.ToString() <> "zip.dll" AndAlso res.Key.ToString() <> "A6C24BF5-3690-4982-887E-11E1B159B249"
+            If existsExtLibs Then
+                Dim realName As String = res.Key.ToString().Split(New String() {"!2!1"}, StringSplitOptions.None)(0)
+                Try
+                    memoryStream = UnZip(CType(res.Value, Byte()))
+                    memoryStream.Seek(0L, SeekOrigin.Begin)
+                    If IO.Directory.Exists("NETz_Unpacker") = False Then
+                        IO.Directory.CreateDirectory("NETz_Unpacker")
+                    End If
+                    IO.File.WriteAllBytes("NETz_Unpacker/" & realName + ".dll", memoryStream.ToArray())
+                Finally
+                    If memoryStream IsNot Nothing Then
+                        memoryStream.Close()
+                    End If
+                    memoryStream = Nothing
+                End Try
+            End If
+        Next
+    End Sub
+
 End Class
 
